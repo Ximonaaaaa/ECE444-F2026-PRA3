@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Flasky - Chatbot{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    #chat-messages {
+        min-height: 180px;
+        max-height: 360px;
+        overflow-y: auto;
+    }
+
+    .chat-message {
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>PRA3 Chatbot</h1>
+    <p>Signed in as {{ name }} ({{ email }})</p>
+</div>
+
+<div id="chat-messages" class="well" aria-live="polite">
+    <p class="chat-message"><strong>Bot:</strong> Hello! Tell me your name.</p>
+</div>
+
+<form id="chat-form" class="form-inline">
+    <div class="form-group">
+        <label class="sr-only" for="message">Message</label>
+        <input id="message" class="form-control" type="text"
+               placeholder="Type a message" autocomplete="off" required>
+    </div>
+    <button class="btn btn-primary" type="submit">Send</button>
+</form>
+
+<hr>
+
+<form action="{{ url_for('logout') }}" method="post">
+    <button class="btn btn-default" type="submit">Logout</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    const form = document.getElementById("chat-form");
+    const messageInput = document.getElementById("message");
+    const messages = document.getElementById("chat-messages");
+
+    function addMessage(sender, text) {
+        const paragraph = document.createElement("p");
+        paragraph.className = "chat-message";
+
+        const label = document.createElement("strong");
+        label.textContent = `${sender}: `;
+        paragraph.appendChild(label);
+        paragraph.appendChild(document.createTextNode(text));
+
+        messages.appendChild(paragraph);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const message = messageInput.value.trim();
+        if (!message) return;
+
+        addMessage("You", message);
+        messageInput.value = "";
+
+        try {
+            const response = await fetch("{{ url_for('chat') }}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({message})
+            });
+            const data = await response.json();
+            addMessage("Bot", data.reply || "I don't understand.");
+        } catch (error) {
+            addMessage("Bot", "Sorry, I could not process that message.");
+        }
+    });
+</script>
+{% endblock %}
